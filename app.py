@@ -17,6 +17,7 @@ BASE_IMG_URL = "https://githubusercontent.com"
 IMG_EXT = ".jpg"
 
 POSTERS = {
+    "WELCOME_ICON": f"{BASE_IMG_URL}/Welcome_icon{IMG_EXT}",
     "CARGO_SERVICE": f"{BASE_IMG_URL}/Achaa_teesh{IMG_EXT}",
     "REG_CERT_CHANGE": f"{BASE_IMG_URL}/Burtgel_gerchilgee_solih{IMG_EXT}",
     "REG_DEREGISTER": f"{BASE_IMG_URL}/Burtgel_Hasalt{IMG_EXT}",
