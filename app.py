@@ -99,7 +99,7 @@ SYSTEM_PROMPT = """
 
 6. Тээврийн хэрэгслийн бүртгэлийн үйлчилгээ (REG_GENERAL ба 9 үйлчилгээ):
 - Ажлын цаг: 09:00–18:00 (Цайны цаг 13:00–14:00).
-- Ерөнхий бүрдүүлэх материал: Иргний үнэмлэх, тээврийн хэрэгслийн гэрчилгээ, худалдах/худалдан авах гэрээ (нотариатаар баталгаажуулсан), даатгал (ОСАГО), татвар/хураамж төлсөн баримт. Бүгдэд нь татвар, торгууль, замын хураамжийн өргүй байх шаардлагатай.
+- Ерөнхий бүрдүүлэх материал: Иргэний үнэмлэх, тээврийн хэрэгслийн гэрчилгээ, худалдах/худалдан авах гэрээ (нотариатаар баталгаажуулсан), даатгал (ОСАГО), татвар/хураамж төлсөн баримт. Бүгдэд нь татвар, торгууль, замын хураамжийн өргүй байх шаардлагатай.
 - Гэрчилгээ солилт (REG_CERT_CHANGE): Үзлэгт орсон байх, хуучин гэрчилгээг хураалгах, өмчлөгч өөрийн биеэр ирэх. Цахим/цаасаар авна.
 - Бүртгэлээс хасах (REG_DEREGISTER): Дугаар, гэрчилгээг хураалгах (үрэгдүүлсэн бол хүчингүйд тооцуулах), өмчлөгч өөрийн биеэр ирэх. Дахин сэргээх боломжгүй.
 - Импортын шинэ бүртгэл (REG_IMPORT_NEW): Үзлэгт тэнцсэн байх, бичиг баримт, хилээр оруулсан иргэн өөрөө эсвэл худалдан авсан гэрээтэй ирэх. Харьяаллын дагуу дугаар авна.
@@ -153,7 +153,6 @@ def webhook():
                 if messaging_event.get("message") and messaging_event["message"].get("text"):
                     sender_id = messaging_event["sender"]["id"]
                     user_text = messaging_event["message"]["text"]
-                    
                     try:
                         response = client.models.generate_content(
                             model="gemini-2.5-flash",
@@ -164,14 +163,15 @@ def webhook():
                             )
                         )
                         ai_data = json.loads(response.text)
-reply_text = ai_data.get("reply_text", "Уучлаарай, 98302858 дугаараар лавлана уу.")
-poster_id = ai_data.get("poster_id", "NONE")
-send_message(sender_id, reply_text)
-if poster_id in POSTERS and POSTERS[poster_id].startswith("http"):
-send_image(sender_id, POSTERS[poster_id])
-except Exception as e:
-print("Error:", e)
-send_message(sender_id, "Уучлаарай, систем түр ачаалалтай байна. 98302858 дугаараар холбогдоно уу.")
-return "OK", 200
-if name == "main":
-app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+                        reply_text = ai_data.get("reply_text", "Уучлаарай, 98302858 дугаараар лавлана уу.")
+                        poster_id = ai_data.get("poster_id", "NONE")
+                        send_message(sender_id, reply_text)
+                        if poster_id in POSTERS and POSTERS[poster_id].startswith("http"):
+                            send_image(sender_id, POSTERS[poster_id])
+                    except Exception as e:
+                        print("Error:", e)
+                        send_message(sender_id, "Уучлаарай, систем түр ачаалалтай байна. 98302858 дугаараар холбогдоно уу.")
+    return "OK", 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
