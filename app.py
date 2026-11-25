@@ -1,10 +1,21 @@
-python
-import osimport jsonimport requestsfrom flask import Flask, requestimport google.generativeai as genai
-app = Flask(__name__)
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN")VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "khentii_autotrans_2026")
+import os
+import json
+import requests
+from flask import Flask, request
+from google import genai
+from google.genai import types
 
-genai.configure(api_key=GEMINI_API_KEY)
-# GitHub дээр хуулсны дараа үндсэн линкийг энд тавинаBASE_IMG_URL = "YOUR_GITHUB_RAW_URL"# Зургийн өргөтгөлийг .jpg болгож тохируулавIMG_EXT = ".jpg"
+app = Flask(__name__)
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+PAGE_ACCESS_TOKEN = os.environ.get("PAGE_ACCESS_TOKEN")
+VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN", "khentii_autotrans_2026")
+
+client = genai.Client(api_key=GEMINI_API_KEY)
+
+BASE_IMG_URL = "https://githubusercontent.com"
+IMG_EXT = ".jpg"
+
 POSTERS = {
     "CARGO_SERVICE": f"{BASE_IMG_URL}/Achaa_teesh{IMG_EXT}",
     "REG_CERT_CHANGE": f"{BASE_IMG_URL}/Burtgel_gerchilgee_solih{IMG_EXT}",
@@ -26,6 +37,7 @@ POSTERS = {
     "FINE_INFO": f"{BASE_IMG_URL}/Torguuli{IMG_EXT}",
     "ROAD_FEE_INFO": f"{BASE_IMG_URL}/Zamiin_huraamj{IMG_EXT}",
 }
+
 SYSTEM_PROMPT = """
 Та Хэнтий аймгийн Автотээврийн төвийн албан ёсны мэдээллийн чатбот. 
 Монгол хэлээр эелдэг, товч, ойлгомжтой хариул. Кирилл, латин галиг, холимог бичвэр болон үг үсгийн алдаатай асуултын утгыг заавал таньж ойлго.
@@ -87,7 +99,7 @@ SYSTEM_PROMPT = """
 
 6. Тээврийн хэрэгслийн бүртгэлийн үйлчилгээ (REG_GENERAL ба 9 үйлчилгээ):
 - Ажлын цаг: 09:00–18:00 (Цайны цаг 13:00–14:00).
-- Ерөнхий бүрдүүлэх материал: Иргэний үнэмлэх, тээврийн хэрэгслийн гэрчилгээ, худалдах/худалдан авах гэрээ (нотариатаар баталгаажуулсан), даатгал (ОСАГО), татвар/хураамж төлсөн баримт. Бүгдэд нь татвар, торгууль, замын хураамжийн өргүй байх шаардлагатай.
+- Ерөнхий бүрдүүлэх материал: Иргний үнэмлэх, тээврийн хэрэгслийн гэрчилгээ, худалдах/худалдан авах гэрээ (нотариатаар баталгаажуулсан), даатгал (ОСАГО), татвар/хураамж төлсөн баримт. Бүгдэд нь татвар, торгууль, замын хураамжийн өргүй байх шаардлагатай.
 - Гэрчилгээ солилт (REG_CERT_CHANGE): Үзлэгт орсон байх, хуучин гэрчилгээг хураалгах, өмчлөгч өөрийн биеэр ирэх. Цахим/цаасаар авна.
 - Бүртгэлээс хасах (REG_DEREGISTER): Дугаар, гэрчилгээг хураалгах (үрэгдүүлсэн бол хүчингүйд тооцуулах), өмчлөгч өөрийн биеэр ирэх. Дахин сэргээх боломжгүй.
 - Импортын шинэ бүртгэл (REG_IMPORT_NEW): Үзлэгт тэнцсэн байх, бичиг баримт, хилээр оруулсан иргэн өөрөө эсвэл худалдан авсан гэрээтэй ирэх. Харьяаллын дагуу дугаар авна.
@@ -105,16 +117,14 @@ SYSTEM_PROMPT = """
 
 8. Ерөнхий байршил ба Лавлах утас:
 - Байршил: Хэнтий аймаг, Чингис хот, Хэнтий аймгийн Автотээврийн төв.
-- Лавлах утас: 98302858 (Лавлах мэдээлэл 08:00–00:00)."""
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    system_instruction=SYSTEM_PROMPT,
-    generation_config={"response_mime_type": "application/json"}
-)
+- Лавлах утас: 98302858 (Лавлах мэдээлэл 08:00–00:00).
+"""
+
 def send_message(recipient_id, text):
     url = f"https://facebook.com{PAGE_ACCESS_TOKEN}"
     payload = {"recipient": {"id": recipient_id}, "message": {"text": text}}
     requests.post(url, json=payload)
+
 def send_image(recipient_id, image_url):
     url = f"https://facebook.com{PAGE_ACCESS_TOKEN}"
     payload = {
@@ -128,12 +138,14 @@ def send_image(recipient_id, image_url):
     }
     requests.post(url, json=payload)
 
-@app.route("/webhook", methods=["GET"])def verify():
+@app.route("/webhook", methods=["GET"])
+def verify():
     if request.args.get("hub.verify_token") == VERIFY_TOKEN:
         return request.args.get("hub.challenge")
     return "Invalid verification token", 403
 
-@app.route("/webhook", methods=["POST"])def webhook():
+@app.route("/webhook", methods=["POST"])
+def webhook():
     data = request.get_json()
     if data.get("object") == "page":
         for entry in data.get("entry", []):
@@ -143,11 +155,17 @@ def send_image(recipient_id, image_url):
                     user_text = messaging_event["message"]["text"]
                     
                     try:
-                        response = model.generate_content(user_text)
+                        response = client.models.generate_content(
+                            model="gemini-2.5-flash",
+                            contents=user_text,
+                            config=types.GenerateContentConfig(
+                                system_instruction=SYSTEM_PROMPT,
+                                response_mime_type="application/json"
+                            )
+                        )
                         ai_data = json.loads(response.text)
-                        reply_text = ai_data.get("reply_text", "Уучлаарай, 98302858 дугаараар лавлана уу.")
-                        poster_id = ai_data.get("poster_id", "NONE")
-                       
+reply_text = ai_data.get("reply_text", "Уучлаарай, 98302858 дугаараар лавлана уу.")
+poster_id = ai_data.get("poster_id", "NONE")
 send_message(sender_id, reply_text)
 if poster_id in POSTERS and POSTERS[poster_id].startswith("http"):
 send_image(sender_id, POSTERS[poster_id])
